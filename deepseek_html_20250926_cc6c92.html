@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABM de Lotes - Administración de Parcelas</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-light {
+            background-color: var(--light);
+            color: var(--dark);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--light);
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--light);
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-disponible {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-reservado {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-vendido {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid var(--secondary);
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .search-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            flex: 1;
+            margin-right: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>Sistema de Administración de Lotes</h1>
+                <button id="btnNuevoLote" class="btn btn-primary">Nuevo Lote</button>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                Lista de Lotes
+            </div>
+            <div class="card-body">
+                <div class="search-container">
+                    <input type="text" id="buscarLote" class="search-input" placeholder="Buscar lote por número, manzana o estado...">
+                    <button id="btnBuscar" class="btn btn-light">Buscar</button>
+                </div>
+                
+                <table id="tablaLotes">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Manzana</th>
+                            <th>Superficie (m²)</th>
+                            <th>Precio</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpoTablaLotes">
+                        <!-- Los lotes se cargarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para crear/editar lote -->
+    <div id="modalLote" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tituloModal">Nuevo Lote</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="formLote">
+                    <input type="hidden" id="loteId">
+                    
+                    <div class="form-group">
+                        <label for="numeroLote">Número de Lote</label>
+                        <input type="text" id="numeroLote" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manzana">Manzana</label>
+                        <input type="text" id="manzana" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="superficie">Superficie (m²)</label>
+                        <input type="number" id="superficie" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="precio">Precio</label>
+                        <input type="number" id="precio" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="estado">Estado</label>
+                        <select id="estado" required>
+                            <option value="disponible">Disponible</option>
+                            <option value="reservado">Reservado</option>
+                            <option value="vendido">Vendido</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="descripcion">Descripción</label>
+                        <textarea id="descripcion" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                        <button type="button" class="btn btn-light" id="btnCancelar">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para ver histórico -->
+    <div id="modalHistorico" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Histórico de Cambios - Lote <span id="numeroLoteHistorico"></span></h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <div class="tab active" data-tab="info">Información del Lote</div>
+                    <div class="tab" data-tab="historico">Histórico de Cambios</div>
+                </div>
+                
+                <div id="tab-info" class="tab-content active">
+                    <div class="card">
+                        <div class="card-body">
+                            <p><strong>Número:</strong> <span id="infoNumero"></span></p>
+                            <p><strong>Manzana:</strong> <span id="infoManzana"></span></p>
+                            <p><strong>Superficie:</strong> <span id="infoSuperficie"></span> m²</p>
+                            <p><strong>Precio:</strong> $<span id="infoPrecio"></span></p>
+                            <p><strong>Estado:</strong> <span id="infoEstado"></span></p>
+                            <p><strong>Descripción:</strong> <span id="infoDescripcion"></span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="tab-historico" class="tab-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Campo</th>
+                                <th>Valor Anterior</th>
+                                <th>Nuevo Valor</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoHistorico">
+                            <!-- Los cambios se cargarán aquí dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de ejemplo
+        let lotes = JSON.parse(localStorage.getItem('lotes')) || [
+            {
+                id: 1,
+                numero: "A-101",
+                manzana: "A",
+                superficie: 300.5,
+                precio: 50000,
+                estado: "disponible",
+                descripcion: "Lote con vista al parque",
+                historico: [
+                    {
+                        fecha: "2023-05-10 14:30:00",
+                        campo: "estado",
+                        valorAnterior: "reservado",
+                        nuevoValor: "disponible",
+                        usuario: "admin"
+                    },
+                    {
+                        fecha: "2023-04-15 10:20:00",
+                        campo: "precio",
+                        valorAnterior: "45000",
+                        nuevoValor: "50000",
+                        usuario: "admin"
+                    }
+                ]
+            },
+            {
+                id: 2,
+                numero: "B-205",
+                manzana: "B",
+                superficie: 450.0,
+                precio: 75000,
+                estado: "vendido",
+                descripcion: "Lote esquina con acceso directo",
+                historico: [
+                    {
+                        fecha: "2023-06-01 09:15:00",
+                        campo: "estado",
+                        valorAnterior: "disponible",
+                        nuevoValor: "vendido",
+                        usuario: "admin"
+                    }
+                ]
+            }
+        ];
+        
+        // Variables globales
+        let loteEditando = null;
+        
+        // Elementos del DOM
+        const btnNuevoLote = document.getElementById('btnNuevoLote');
+        const modalLote = document.getElementById('modalLote');
+        const modalHistorico = document.getElementById('modalHistorico');
+        const formLote = document.getElementById('formLote');
+        const cuerpoTablaLotes = document.getElementById('cuerpoTablaLotes');
+        const btnCancelar = document.getElementById('btnCancelar');
+        const closeButtons = document.querySelectorAll('.close');
+        const buscarLote = document.getElementById('buscarLote');
+        const btnBuscar = document.getElementById('btnBuscar');
+        const tabs = document.querySelectorAll('.tab');
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            actualizarTablaLotes();
+            
+            // Event listeners
+            btnNuevoLote.addEventListener('click', mostrarModalNuevoLote);
+            formLote.addEventListener('submit', guardarLote);
+            btnCancelar.addEventListener('click', cerrarModalLote);
+            btnBuscar.addEventListener('click', buscarLotes);
+            buscarLote.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    buscarLotes();
+                }
+            });
+            
+            // Cerrar modales al hacer clic en la X
+            closeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    modal.style.display = 'none';
+                });
+            });
+            
+            // Cerrar modales al hacer clic fuera
+            window.addEventListener('click', function(e) {
+                if (e.target === modalLote) {
+                    modalLote.style.display = 'none';
+                }
+                if (e.target === modalHistorico) {
+                    modalHistorico.style.display = 'none';
+                }
+            });
+            
+            // Tabs del modal histórico
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Remover clase active de todos los tabs y contenidos
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Agregar clase active al tab y contenido seleccionado
+                    this.classList.add('active');
+                    document.getElementById(`tab-${tabId}`).classList.add('active');
+                });
+            });
+        });
+        
+        // Funciones
+        function actualizarTablaLotes(lotesFiltrados = null) {
+            const lotesAMostrar = lotesFiltrados || lotes;
+            cuerpoTablaLotes.innerHTML = '';
+            
+            if (lotesAMostrar.length === 0) {
+                cuerpoTablaLotes.innerHTML = '<tr><td colspan="6" style="text-align: center;">No se encontraron lotes</td></tr>';
+                return;
+            }
+            
+            lotesAMostrar.forEach(lote => {
+                const fila = document.createElement('tr');
+                
+                // Determinar clase de estado
+                let claseEstado = '';
+                let textoEstado = '';
+                switch(lote.estado) {
+                    case 'disponible':
+                        claseEstado = 'status-disponible';
+                        textoEstado = 'Disponible';
+                        break;
+                    case 'reservado':
+                        claseEstado = 'status-reservado';
+                        textoEstado = 'Reservado';
+                        break;
+                    case 'vendido':
+                        claseEstado = 'status-vendido';
+                        textoEstado = 'Vendido';
+                        break;
+                }
+                
+                fila.innerHTML = `
+                    <td>${lote.numero}</td>
+                    <td>${lote.manzana}</td>
+                    <td>${lote.superficie}</td>
+                    <td>$${lote.precio.toLocaleString()}</td>
+                    <td><span class="status-badge ${claseEstado}">${textoEstado}</span></td>
+                    <td class="action-buttons">
+                        <button class="action-btn btn-primary" onclick="editarLote(${lote.id})">Editar</button>
+                        <button class="action-btn btn-warning" onclick="verHistorico(${lote.id})">Histórico</button>
+                        <button class="action-btn btn-danger" onclick="eliminarLote(${lote.id})">Eliminar</button>
+                    </td>
+                `;
+                
+                cuerpoTablaLotes.appendChild(fila);
+            });
+            
+            // Guardar en localStorage
+            localStorage.setItem('lotes', JSON.stringify(lotes));
+        }
+        
+        function mostrarModalNuevoLote() {
+            loteEditando = null;
+            document.getElementById('tituloModal').textContent = 'Nuevo Lote';
+            document.getElementById('formLote').reset();
+            document.getElementById('loteId').value = '';
+            modalLote.style.display = 'flex';
+        }
+        
+        function editarLote(id) {
+            loteEditando = lotes.find(lote => lote.id === id);
+            
+            if (loteEditando) {
+                document.getElementById('tituloModal').textContent = 'Editar Lote';
+                document.getElementById('loteId').value = loteEditando.id;
+                document.getElementById('numeroLote').value = loteEditando.numero;
+                document.getElementById('manzana').value = loteEditando.manzana;
+                document.getElementById('superficie').value = loteEditando.superficie;
+                document.getElementById('precio').value = loteEditando.precio;
+                document.getElementById('estado').value = loteEditando.estado;
+                document.getElementById('descripcion').value = loteEditando.descripcion || '';
+                
+                modalLote.style.display = 'flex';
+            }
+        }
+        
+        function guardarLote(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('loteId').value;
+            const numero = document.getElementById('numeroLote').value;
+            const manzana = document.getElementById('manzana').value;
+            const superficie = parseFloat(document.getElementById('superficie').value);
+            const precio = parseFloat(document.getElementById('precio').value);
+            const estado = document.getElementById('estado').value;
+            const descripcion = document.getElementById('descripcion').value;
+            
+            // Validar que el número de lote sea único (excepto cuando se está editando el mismo lote)
+            if (lotes.some(lote => lote.numero === numero && lote.id !== parseInt(id))) {
+                alert('Ya existe un lote con ese número. Por favor, ingrese un número único.');
+                return;
+            }
+            
+            if (loteEditando) {
+                // Editar lote existente
+                const cambios = [];
+                
+                // Registrar cambios en el histórico
+                if (loteEditando.numero !== numero) {
+                    cambios.push({
+                        campo: 'numero',
+                        valorAnterior: loteEditando.numero,
+                        nuevoValor: numero
+                    });
+                    loteEditando.numero = numero;
+                }
+                
+                if (loteEditando.manzana !== manzana) {
+                    cambios.push({
+                        campo: 'manzana',
+                        valorAnterior: loteEditando.manzana,
+                        nuevoValor: manzana
+                    });
+                    loteEditando.manzana = manzana;
+                }
+                
+                if (loteEditando.superficie !== superficie) {
+                    cambios.push({
+                        campo: 'superficie',
+                        valorAnterior: loteEditando.superficie,
+                        nuevoValor: superficie
+                    });
+                    loteEditando.superficie = superficie;
+                }
+                
+                if (loteEditando.precio !== precio) {
+                    cambios.push({
+                        campo: 'precio',
+                        valorAnterior: loteEditando.precio,
+                        nuevoValor: precio
+                    });
+                    loteEditando.precio = precio;
+                }
+                
+                if (loteEditando.estado !== estado) {
+                    cambios.push({
+                        campo: 'estado',
+                        valorAnterior: loteEditando.estado,
+                        nuevoValor: estado
+                    });
+                    loteEditando.estado = estado;
+                }
+                
+                if (loteEditando.descripcion !== descripcion) {
+                    cambios.push({
+                        campo: 'descripcion',
+                        valorAnterior: loteEditando.descripcion || '',
+                        nuevoValor: descripcion
+                    });
+                    loteEditando.descripcion = descripcion;
+                }
+                
+                // Agregar cambios al histórico
+                if (cambios.length > 0) {
+                    cambios.forEach(cambio => {
+                        loteEditando.historico.unshift({
+                            fecha: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                            campo: cambio.campo,
+                            valorAnterior: cambio.valorAnterior,
+                            nuevoValor: cambio.nuevoValor,
+                            usuario: 'admin' // En un sistema real, esto vendría de la sesión del usuario
+                        });
+                    });
+                }
+            } else {
+                // Crear nuevo lote
+                const nuevoId = lotes.length > 0 ? Math.max(...lotes.map(l => l.id)) + 1 : 1;
+                
+                const nuevoLote = {
+                    id: nuevoId,
+                    numero,
+                    manzana,
+                    superficie,
+                    precio,
+                    estado,
+                    descripcion,
+                    historico: []
+                };
+                
+                lotes.push(nuevoLote);
+            }
+            
+            actualizarTablaLotes();
+            cerrarModalLote();
+            alert('Lote guardado correctamente.');
+        }
+        
+        function eliminarLote(id) {
+            if (confirm('¿Está seguro de que desea eliminar este lote?')) {
+                lotes = lotes.filter(lote => lote.id !== id);
+                actualizarTablaLotes();
+                alert('Lote eliminado correctamente.');
+            }
+        }
+        
+        function verHistorico(id) {
+            const lote = lotes.find(l => l.id === id);
+            
+            if (lote) {
+                document.getElementById('numeroLoteHistorico').textContent = lote.numero;
+                document.getElementById('infoNumero').textContent = lote.numero;
+                document.getElementById('infoManzana').textContent = lote.manzana;
+                document.getElementById('infoSuperficie').textContent = lote.superficie;
+                document.getElementById('infoPrecio').textContent = lote.precio.toLocaleString();
+                
+                let textoEstado = '';
+                switch(lote.estado) {
+                    case 'disponible': textoEstado = 'Disponible'; break;
+                    case 'reservado': textoEstado = 'Reservado'; break;
+                    case 'vendido': textoEstado = 'Vendido'; break;
+                }
+                document.getElementById('infoEstado').textContent = textoEstado;
+                document.getElementById('infoDescripcion').textContent = lote.descripcion || 'Sin descripción';
+                
+                // Cargar histórico
+                const cuerpoHistorico = document.getElementById('cuerpoHistorico');
+                cuerpoHistorico.innerHTML = '';
+                
+                if (lote.historico.length === 0) {
+                    cuerpoHistorico.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay cambios registrados</td></tr>';
+                } else {
+                    lote.historico.forEach(cambio => {
+                        const fila = document.createElement('tr');
+                        fila.innerHTML = `
+                            <td>${cambio.fecha}</td>
+                            <td>${cambio.campo}</td>
+                            <td>${cambio.valorAnterior}</td>
+                            <td>${cambio.nuevoValor}</td>
+                            <td>${cambio.usuario}</td>
+                        `;
+                        cuerpoHistorico.appendChild(fila);
+                    });
+                }
+                
+                // Resetear tabs a la primera pestaña
+                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                document.querySelector('.tab[data-tab="info"]').classList.add('active');
+                document.getElementById('tab-info').classList.add('active');
+                
+                modalHistorico.style.display = 'flex';
+            }
+        }
+        
+        function buscarLotes() {
+            const texto = buscarLote.value.toLowerCase();
+            
+            if (texto.trim() === '') {
+                actualizarTablaLotes();
+                return;
+            }
+            
+            const lotesFiltrados = lotes.filter(lote => 
+                lote.numero.toLowerCase().includes(texto) ||
+                lote.manzana.toLowerCase().includes(texto) ||
+                lote.estado.toLowerCase().includes(texto)
+            );
+            
+            actualizarTablaLotes(lotesFiltrados);
+        }
+        
+        function cerrarModalLote() {
+            modalLote.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
