@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Lotes</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .card-large {
+      max-width: 800px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 2rem;
+    }
+
+    h2 {
+      color: #444;
+      margin-bottom: 15px;
+    }
+
+    p {
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin: 10px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid #667eea;
+      color: #667eea;
+    }
+
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 1000px;
+      margin-top: 20px;
+    }
+
+    .project-card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-align: left;
+    }
+
+    .project-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .project-card h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .project-card p {
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .map-type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .map-type-card {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-align: center;
+      border: 2px solid transparent;
+    }
+
+    .map-type-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      border-color: #667eea;
+    }
+
+    .map-type-card.selected {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+
+    .map-type-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      color: #667eea;
+    }
+
+    .map-type-card h3 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .map-type-card p {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    #map {
+      height: 500px;
+      width: 100%;
+      max-width: 1000px;
+      border-radius: 10px;
+      margin: 20px 0;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .legend {
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      font-size: 14px;
+      line-height: 18px;
+      margin-top: 10px;
+    }
+
+    .legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.8;
+      border-radius: 3px;
+    }
+
+    .status-count {
+      display: flex;
+      justify-content: space-around;
+      margin: 15px 0;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+    }
+
+    .status-color {
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+      margin-right: 5px;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover {
+      background: white;
+    }
+
+    .map-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .card {
+        margin: 10px;
+        padding: 20px;
+      }
+      
+      #map {
+        height: 400px;
+      }
+      
+      .project-grid, .map-type-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .status-count {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 15px;
+      }
+      
+      #map {
+        height: 300px;
+      }
+      
+      .btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+      }
+      
+      .map-type-icon {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla 1: Acceso -->
+  <div id="screen-access" class="screen active">
+    <div class="card">
+      <h1>Bienvenido al Sistema de Lotes</h1>
+      <p>Acceda al sistema para visualizar y administrar los lotes disponibles.</p>
+      <button class="btn" onclick="showScreen('screen-projects')">Acceder al Sistema</button>
+    </div>
+  </div>
+
+  <!-- Pantalla 2: Selección de Proyectos -->
+  <div id="screen-projects" class="screen">
+    <button class="back-btn" onclick="showScreen('screen-access')">← Volver</button>
+    <div class="card">
+      <h1>Seleccione un Proyecto</h1>
+      <p>Elija el loteo que desea visualizar en el mapa.</p>
+      
+      <div class="project-grid">
+        <div class="project-card" onclick="selectProject('loteo1')">
+          <h3>Loteo Norte</h3>
+          <p>Ubicación: Zona Norte</p>
+          <p>Total de lotes: <span id="loteo1-count">Calculando...</span></p>
+          <small>Estado: Activo</small>
+        </div>
+        <div class="project-card" onclick="selectProject('loteo2')">
+          <h3>Loteo Sur</h3>
+          <p>Ubicación: Zona Sur</p>
+          <p>Total de lotes: <span id="loteo2-count">Calculando...</span></p>
+          <small>Estado: En desarrollo</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla 3: Selección de Tipo de Mapa -->
+  <div id="screen-map-type" class="screen">
+    <button class="back-btn" onclick="showScreen('screen-projects')">← Volver a Proyectos</button>
+    <div class="card card-large">
+      <h1 id="map-type-title">Seleccione Tipo de Mapa</h1>
+      <p id="map-type-description">Elija cómo desea visualizar la información del proyecto.</p>
+      
+      <div class="map-type-grid">
+        <div class="map-type-card" onclick="selectMapType('proyecto')">
+          <div class="map-type-icon">🗺️</div>
+          <h3>Mapa del Proyecto</h3>
+          <p>Visualice la distribución general de los lotes en el proyecto con información básica de cada parcela.</p>
+        </div>
+        <div class="map-type-card" onclick="selectMapType('estados')">
+          <div class="map-type-icon">📊</div>
+          <h3>Mapa de Estados de Venta</h3>
+          <p>Visualice el estado de venta de cada lote con colores diferenciados y estadísticas detalladas.</p>
+        </div>
+      </div>
+      
+      <div style="margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="showScreen('screen-projects')">Volver a Proyectos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla 4: Mapa -->
+  <div id="screen-map" class="screen">
+    <button class="back-btn" onclick="showScreen('screen-map-type')">← Volver a Tipo de Mapa</button>
+    <div class="card card-large">
+      <h1 id="map-title">Visualización de Lotes</h1>
+      <p id="map-description">Seleccione un lote para ver más información.</p>
+      
+      <div class="map-controls">
+        <button class="btn" onclick="refreshStates()">Actualizar Estados</button>
+        <button class="btn btn-outline" onclick="toggleLegend()">Mostrar/Ocultar Leyenda</button>
+        <button class="btn btn-outline" onclick="downloadReport()">Descargar Reporte</button>
+      </div>
+      
+      <div class="status-count" id="status-count">
+        <!-- Los contadores de estado se llenarán dinámicamente -->
+      </div>
+      
+      <div id="map"></div>
+      
+      <div class="legend" id="legend">
+        <!-- La leyenda se generará dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let map;
+    let currentGeoJSON;
+    let estadoCounts = { disponible: 0, reservado: 0, vendido: 0 };
+    let currentProject = '';
+    let currentMapType = '';
+
+    // Datos del GeoJSON proporcionado
+    const geojsonData = {
+      "type": "FeatureCollection",
+      "name": "loteo1",
+      "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::5347" } },
+      "features": [
+        { "type": "Feature", "properties": { "Layer": "01", "tipo": "4200" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 5425982.997498630546033, 6502612.356222646310925 ], [ 5425952.319105831906199, 6502618.063850181177258 ], [ 5425940.430051877163351, 6502554.160404294729233 ], [ 5426019.281811573542655, 6502539.490259164012969 ], [ 5426031.170865529216826, 6502603.393705050460994 ], [ 5425982.997498630546033, 6502612.356222646310925 ] ] ] } },
+        { "type": "Feature", "properties": { "Layer": "01", "tipo": "4200" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 5425940.430051877163351, 6502554.160404294729233 ], [ 5425935.539193137548864, 6502527.872128722257912 ], [ 5425991.891521761193871, 6502455.091479454189539 ], [ 5426003.188626375980675, 6502452.989685341715813 ], [ 5426019.281811573542655, 6502539.490259164012969 ], [ 5425940.430051877163351, 6502554.160404294729233 ] ] ] } },
+        { "type": "Feature", "properties": { "Layer": "H_oscuro", "tipo": "EV" }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 5426951.780419765971601, 6502225.648908770643175 ], [ 5426908.499484986066818, 6502233.701203318312764 ], [ 5426902.280595226213336, 6502200.274785470217466 ], [ 5426940.622662756592035, 6502193.141353095881641 ], [ 5426858.679644728079438, 6501752.699141453951597 ], [ 5426442.815681503154337, 6501830.06944642495364 ], [ 5426450.132022396661341, 6501869.394643891602755 ], [ 5426400.256576091982424, 6501878.673828513361514 ], [ 5426392.025692583993077, 6501834.432981360703707 ], [ 5426862.680751796811819, 6501746.868949159048498 ], [ 5426951.780419765971601, 6502225.648908770643175 ] ], [ [ 5426061.629000661894679, 6502597.732000844553113 ], [ 5426031.169915745966136, 6502603.388599981553853 ], [ 5426025.501591756939888, 6502572.921463012695313 ], [ 5426025.959368104115129, 6502574.987223325297236 ], [ 5426026.556992459110916, 6502577.016944978386164 ], [ 5426027.291680719703436, 6502579.001172287389636 ], [ 5426028.160010262392461, 6502580.930661510676146 ], [ 5426029.157935875467956, 6502582.796423909254372 ], [ 5426030.280808612704277, 6502584.589767621830106 ], [ 5426031.523397447541356, 6502586.302338158711791 ], [ 5426032.879913642071187, 6502587.926157319918275 ], [ 5426034.344037716276944, 6502589.453660365194082 ], [ 5426035.908948884345591, 6502590.877731252461672 ], [ 5426037.567356836982071, 6502592.191735788248479 ], [ 5426039.311535694636405, 6502593.389552539214492 ], [ 5426041.133360008709133, 6502594.465601341798902 ], [ 5426043.024342607706785, 6502595.414869304746389 ], [ 5426044.975674141198397, 6502596.23293415736407 ], [ 5426046.978264114819467, 6502596.915984854102135 ], [ 5426049.02278324123472, 6502597.460839328356087 ], [ 5426051.099706902168691, 6502597.864959314465523 ], [ 5426053.199359518475831, 6502598.126462174579501 ], [ 5426055.311959627084434, 6502598.244129669852555 ], [ 5426057.427665445022285, 6502598.217413632199168 ], [ 5426059.536620724014938, 6502598.046438521705568 ], [ 5426061.629000661894679, 6502597.732000844553113 ] ], [ [ 5426064.466249622404575, 6502554.883593294769526 ], [ 5426065.297508412972093, 6502555.497222295030951 ], [ 5426066.084552940912545, 6502556.166619515046477 ], [ 5426066.823649005033076, 6502556.888608943670988 ], [ 5426067.511289901100099, 6502557.65976503957063 ], [ 5426068.144213058054447, 6502558.476428988389671 ], [ 5426068.71941551938653, 6502559.334726056084037 ], [ 5426069.234168185852468, 6502560.230583979748189 ], [ 5426069.686028770171106, 6502561.159752284176648 ], [ 5426070.072853381745517, 6502562.117822452448308 ], [ 5426070.39280669670552, 6502563.100248837843537 ], [ 5426070.644370671361685, 6502564.102370235137641 ], [ 5426070.826351736672223, 6502565.119431992992759 ], [ 5426070.937886469997466, 6502566.146608574315906 ], [ 5426070.978445683605969, 6502567.179026453755796 ], [ 5426070.947836941108108, 6502568.211787235923111 ], [ 5426070.846205469220877, 6502569.239990897476673 ], [ 5426070.674033466726542, 6502570.258759040385485 ], [ 5426070.432137818075716, 6502571.263258031569421 ], [ 5426070.121666218154132, 6502572.248721938580275 ], [ 5426069.74409172590822, 6502573.210475144907832 ], [ 5426069.30120577570051, 6502574.143954530358315 ], [ 5426068.795109678059816, 6502575.044731120578945 ], [ 5426068.228204648941755, 6502575.908531106077135 ], [ 5426067.603180416859686, 6502576.731256113387644 ], [ 5426066.923002464696765, 6502577.509002652950585 ], [ 5426066.190897952765226, 6502578.23808064032346 ], [ 5426065.41034041531384, 6502578.915030902251601 ], [ 5426064.585033272393048, 6502579.536641590297222 ], [ 5426063.718892266042531, 6502580.099963420070708 ], [ 5426062.816026874817908, 6502580.602323662489653 ], [ 5426061.880720822140574, 6502581.041338827461004 ], [ 5426060.917411746457219, 6502581.414925968274474 ], [ 5426059.93067015055567, 6502581.721312569454312 ], [ 5426058.925177713856101, 6502581.959044954739511 ], [ 5426057.905705081298947, 6502582.126995181664824 ], [ 5426056.877089227549732, 6502582.224366394802928 ], [ 5426055.844210509210825, 6502582.250696610659361 ], [ 5426054.811969507485628, 6502582.205860901623964 ], [ 5426053.785263776779175, 6502582.090071993879974 ], [ 5426052.768964611925185, 6502581.903879259712994 ], [ 5426051.767893930897117, 6502581.648166105151176 ], [ 5426050.786801397800446, 6502581.324145783670247 ], [ 5426049.830341890454292, 6502580.933355637826025 ], [ 5426048.903053413145244, 6502580.47764980327338 ], [ 5426048.009335565380752, 6502579.959190416149795 ], [ 5426047.153428668156266, 6502578.380437351763248 ], [ 5426046.339393643662333, 6502578.744136553257704 ], [ 5426045.571092751808465, 6502578.053307004272938 ], [ 5426044.852171260863543, 6502577.311226403340697 ], [ 5426043.186040155589581, 6502576.521415617316961 ], [ 5426042.575859952718019, 6502575.687621969729662 ], [ 5426041.024525703862309, 6502574.813801465556026 ], [ 5426040.534653261303902, 6502573.904100021347404 ], [ 5426040.108566866256297, 6502572.962833793833852 ], [ 5426039.748288122937083, 6502571.994468700140715 ], [ 5426039.455526405014098, 6502571.003599232062697 ], [ 5426039.231670743785799, 6502569.994926653802395 ], [ 5426034.607967212796211, 6502534.392642252147198 ], [ 5426064.466249622404575, 6502554.883593294769526 ] ], [ [ 5426155.048751779831946, 6501924.294045280665159 ], [ 5426121.623334055766463, 6501930.512748971581459 ], [ 5426113.392450546845794, 6501886.271901819854975 ], [ 5426146.817868270911276, 6501880.053198128007352 ], [ 5426155.048751779831946, 6501924.294045280665159 ] ], [ [ 5426203.630588753148913, 6501915.255532990209758 ], [ 5426179.627000195905566, 6501919.721332220360637 ], [ 5426171.396116687916219, 6501875.480485068634152 ], [ 5426195.399705245159566, 6501871.014685839414597 ], [ 5426203.630588753148913, 6501915.255532990209758 ] ], [ [ 5426463.575812277384102, 6501963.523621967993677 ], [ 5426320.877681846730411, 6501990.072202386334538 ], [ 5426307.159542669542134, 6501916.337457131594419 ], [ 5426449.857673100195825, 6501889.788876716978848 ], [ 5426463.575812277384102, 6501963.523621967993677 ] ], [ [ 5426521.26317426096648, 6502322.019967877306044 ], [ 5426513.527887557633221, 6502323.459095918573439 ], [ 5426493.608669240958989, 6502291.999870242550969 ], [ 5426321.658106504939497, 6502294.971903087571263 ], [ 5426319.803321526385844, 6502285.002468004822731 ], [ 5426459.88476715888828, 6502282.581266774714 ], [ 5426512.117748143151402, 6502272.863471039570868 ], [ 5426521.26317426096648, 6502322.019967877306044 ] ] ] } }
+      ]
+    };
+
+    // Función para mostrar una pantalla específica
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+      });
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    // Función para seleccionar un proyecto
+    function selectProject(project) {
+      currentProject = project;
+      showScreen('screen-map-type');
+      
+      // Actualizar título de la pantalla de selección de mapa
+      document.getElementById('map-type-title').textContent = `Tipo de Mapa - ${project === 'loteo1' ? 'Loteo Norte' : 'Loteo Sur'}`;
+      document.getElementById('map-type-description').textContent = `Seleccione cómo desea visualizar el ${project === 'loteo1' ? 'Loteo Norte' : 'Loteo Sur'}`;
+    }
+
+    // Función para seleccionar tipo de mapa
+    function selectMapType(mapType) {
+      currentMapType = mapType;
+      showMap();
+    }
+
+    // Función para mostrar el mapa
+    function showMap() {
+      showScreen('screen-map');
+      
+      // Actualizar título y descripción según el tipo de mapa
+      const projectName = currentProject === 'loteo1' ? 'Loteo Norte' : 'Loteo Sur';
+      const mapTypeName = currentMapType === 'proyecto' ? 'Mapa del Proyecto' : 'Mapa de Estados de Venta';
+      
+      document.getElementById('map-title').textContent = `${projectName} - ${mapTypeName}`;
+      
+      if (currentMapType === 'proyecto') {
+        document.getElementById('map-description').textContent = 'Visualización general del proyecto con información básica de cada lote.';
+      } else {
+        document.getElementById('map-description').textContent = 'Visualización del estado de venta de cada lote con estadísticas detalladas.';
+      }
+      
+      // Inicializar mapa si no existe
+      if (!map) {
+        map = L.map('map').setView([-31.6333, -60.7], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+      } else {
+        map.setView([-31.6333, -60.7], 16);
+      }
+      
+      // Limpiar capas existentes
+      if (currentGeoJSON) {
+        map.removeLayer(currentGeoJSON);
+      }
+      
+      // Procesar el GeoJSON y asignar estados aleatorios
+      const processedData = processGeoJSON(geojsonData);
+      
+      // Añadir el GeoJSON al mapa según el tipo seleccionado
+      currentGeoJSON = L.geoJSON(processedData, {
+        onEachFeature: (feature, layer) => {
+          const estado = feature.properties.estado;
+          const numero = feature.properties.numero || 'N/A';
+          const superficie = (feature.properties.superficie || Math.random() * 500 + 100).toFixed(0);
+          const precio = (feature.properties.precio || Math.random() * 90000 + 10000).toFixed(0);
+          
+          let popupContent = '';
+          
+          if (currentMapType === 'proyecto') {
+            popupContent = `
+              <b>Lote ${numero}</b><br>
+              Superficie: ${superficie} m²<br>
+              Precio: $${precio}<br>
+              <small>Estado: ${estado}</small>
+            `;
+          } else {
+            popupContent = `
+              <b>Lote ${numero}</b><br>
+              <strong>Estado: ${estado.toUpperCase()}</strong><br>
+              Superficie: ${superficie} m²<br>
+              Precio: $${precio}<br>
+              <small>Última actualización: ${new Date().toLocaleDateString()}</small>
+            `;
+          }
+          
+          layer.bindPopup(popupContent);
+        },
+        style: (feature) => {
+          const estado = feature.properties.estado;
+          let color = 'gray'; // Color por defecto
+          
+          // Si es mapa de estados, usar colores diferenciados
+          if (currentMapType === 'estados') {
+            switch(estado) {
+              case 'disponible': color = 'green'; break;
+              case 'reservado': color = 'orange'; break;
+              case 'vendido': color = 'red'; break;
+            }
+          } else {
+            // Para mapa de proyecto, usar colores más sutiles
+            switch(estado) {
+              case 'disponible': color = '#90EE90'; break; // Verde claro
+              case 'reservado': color = '#FFD700'; break; // Amarillo
+              case 'vendido': color = '#FFB6C1'; break; // Rosa claro
+            }
+          }
+          
+          return {
+            fillColor: color,
+            color: 'white',
+            weight: currentMapType === 'estados' ? 2 : 1,
+            opacity: 1,
+            fillOpacity: currentMapType === 'estados' ? 0.8 : 0.6
+          };
+        }
+      }).addTo(map);
+      
+      // Actualizar contadores de estado
+      updateStatusCounts();
+      
+      // Añadir leyenda según el tipo de mapa
+      updateLegend();
+    }
+
+    // Procesar GeoJSON y asignar estados aleatorios
+    function processGeoJSON(data) {
+      // Reiniciar contadores
+      estadoCounts = { disponible: 0, reservado: 0, vendido: 0 };
+      
+      // Asignar estados aleatorios a cada feature
+      data.features.forEach((feature, index) => {
+        // Generar estado aleatorio con probabilidades diferentes
+        const rand = Math.random();
+        let estado;
+        
+        if (rand < 0.6) { // 60% de probabilidad para disponible
+          estado = 'disponible';
+        } else if (rand < 0.85) { // 25% de probabilidad para reservado
+          estado = 'reservado';
+        } else { // 15% de probabilidad para vendido
+          estado = 'vendido';
+        }
+        
+        // Actualizar propiedades
+        feature.properties.numero = `L-${index + 1}`;
+        feature.properties.estado = estado;
+        feature.properties.superficie = Math.random() * 500 + 100;
+        feature.properties.precio = Math.random() * 90000 + 10000;
+        
+        // Actualizar contador
+        estadoCounts[estado]++;
+      });
+      
+      return data;
+    }
+
+    // Actualizar contadores de estado
+    function updateStatusCounts() {
+      const statusCountElement = document.getElementById('status-count');
+      
+      if (currentMapType === 'estados') {
+        statusCountElement.innerHTML = `
+          <div class="status-item">
+            <div class="status-color" style="background-color: green;"></div>
+            <span>Disponibles: ${estadoCounts.disponible} (${((estadoCounts.disponible / geojsonData.features.length) * 100).toFixed(1)}%)</span>
+          </div>
+          <div class="status-item">
+            <div class="status-color" style="background-color: orange;"></div>
+            <span>Reservados: ${estadoCounts.reservado} (${((estadoCounts.reservado / geojsonData.features.length) * 100).toFixed(1)}%)</span>
+          </div>
+          <div class="status-item">
+            <div class="status-color" style="background-color: red;"></div>
+            <span>Vendidos: ${estadoCounts.vendido} (${((estadoCounts.vendido / geojsonData.features.length) * 100).toFixed(1)}%)</span>
+          </div>
+        `;
+        statusCountElement.style.display = 'flex';
+      } else {
+        statusCountElement.style.display = 'none';
+      }
+    }
+
+    // Actualizar leyenda del mapa
+    function updateLegend() {
+      const legend = document.getElementById('legend');
+      
+      if (currentMapType === 'estados') {
+        legend.innerHTML = `
+          <h4>Leyenda de Estados de Venta</h4>
+          <div><i style="background:green"></i> Disponible</div>
+          <div><i style="background:orange"></i> Reservado</div>
+          <div><i style="background:red"></i> Vendido</div>
+        `;
+      } else {
+        legend.innerHTML = `
+          <h4>Leyenda del Proyecto</h4>
+          <div><i style="background:#90EE90"></i> Disponible</div>
+          <div><i style="background:#FFD700"></i> Reservado</div>
+          <div><i style="background:#FFB6C1"></i> Vendido</div>
+        `;
+      }
+    }
+
+    // Refrescar estados aleatorios
+    function refreshStates() {
+      if (currentGeoJSON) {
+        map.removeLayer(currentGeoJSON);
+        const processedData = processGeoJSON(geojsonData);
+        
+        currentGeoJSON = L.geoJSON(processedData, {
+          onEachFeature: (feature, layer) => {
+            const estado = feature.properties.estado;
+            const numero = feature.properties.numero || 'N/A';
+            const superficie = (feature.properties.superficie || Math.random() * 500 + 100).toFixed(0);
+            const precio = (feature.properties.precio || Math.random() * 90000 + 10000).toFixed(0);
+            
+            let popupContent = '';
+            
+            if (currentMapType === 'proyecto') {
+              popupContent = `
+                <b>Lote ${numero}</b><br>
+                Superficie: ${superficie} m²<br>
+                Precio: $${precio}<br>
+                <small>Estado: ${estado}</small>
+              `;
+            } else {
+              popupContent = `
+                <b>Lote ${numero}</b><br>
+                <strong>Estado: ${estado.toUpperCase()}</strong><br>
+                Superficie: ${superficie} m²<br>
+                Precio: $${precio}<br>
+                <small>Última actualización: ${new Date().toLocaleDateString()}</small>
+              `;
+            }
+            
+            layer.bindPopup(popupContent);
+          },
+          style: (feature) => {
+            const estado = feature.properties.estado;
+            let color = 'gray';
+            
+            if (currentMapType === 'estados') {
+              switch(estado) {
+                case 'disponible': color = 'green'; break;
+                case 'reservado': color = 'orange'; break;
+                case 'vendido': color = 'red'; break;
+              }
+            } else {
+              switch(estado) {
+                case 'disponible': color = '#90EE90'; break;
+                case 'reservado': color = '#FFD700'; break;
+                case 'vendido': color = '#FFB6C1'; break;
+              }
+            }
+            
+            return {
+              fillColor: color,
+              color: 'white',
+              weight: currentMapType === 'estados' ? 2 : 1,
+              opacity: 1,
+              fillOpacity: currentMapType === 'estados' ? 0.8 : 0.6
+            };
+          }
+        }).addTo(map);
+        
+        updateStatusCounts();
+      }
+    }
+
+    // Alternar visibilidad de la leyenda
+    function toggleLegend() {
+      const legend = document.getElementById('legend');
+      legend.style.display = legend.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Descargar reporte (simulado)
+    function downloadReport() {
+      alert(`Reporte del ${currentProject === 'loteo1' ? 'Loteo Norte' : 'Loteo Sur'} generado exitosamente.\n\nDisponibles: ${estadoCounts.disponible}\nReservados: ${estadoCounts.reservado}\nVendidos: ${estadoCounts.vendido}`);
+    }
+
+    // Inicializar contadores de proyectos
+    document.addEventListener('DOMContentLoaded', function() {
+      // Simular cálculo de lotes por proyecto
+      document.getElementById('loteo1-count').textContent = geojsonData.features.length;
+      document.getElementById('loteo2-count').textContent = Math.floor(geojsonData.features.length * 0.7);
+    });
+  </script>
+</body>
+</html>
